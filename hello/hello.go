@@ -1,30 +1,46 @@
 package main
 
 import (
-	"log"
 	"net/http"
-	"prog/gotry/hello/app/controller"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 )
 
-func main() {
-	//создаем и запускаем в работу роутер для обслуживания запросов
-	r := httprouter.New()
-	routes(r)
-
-	//прикрепляемся к хосту и свободному порту для приема и обслуживания входящих запросов
-	//вторым параметром передается роутер, который будет работать с запросами
-	err := http.ListenAndServe("localhost:4444", r)
-	if err != nil {
-		log.Fatal(err)
-	}
+type album struct {
+	ID     string  `json:"id"`
+	Title  string  `json:"title"`
+	Artist string  `json:"artist"`
+	Price  float64 `json:"price"`
 }
 
-func routes(r *httprouter.Router) {
-	//путь к папке со внешними файлами: html, js, css, изображения и т.д.
-	r.ServeFiles("/public/*filepath", http.Dir("public"))
-	//что следует выполнять при входящих запросах указанного типа и по указанному адресу
-	r.GET("/", controller.StartPage)
-	r.GET("/users", controller.GetUsers)
+var albums = []album{
+	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
+	{ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
+	{ID: "3", Title: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
+}
+
+func getAlbums(c *gin.Context) {
+	c.IndentedJSON(http.StatusOK, albums)
+}
+
+func postAlbums(c *gin.Context) {
+	var newAlbum album
+
+	// Call BindJSON to bind the received JSON to
+	// newAlbum.
+	if err := c.BindJSON(&newAlbum); err != nil {
+		return
+	}
+
+	// Add the new album to the slice.
+	albums = append(albums, newAlbum)
+	c.IndentedJSON(http.StatusCreated, newAlbum)
+}
+
+func main() {
+	router := gin.Default()
+	router.GET("/albums", getAlbums)
+	router.POST("/albums", postAlbums)
+
+	router.Run("localhost:8080")
 }
