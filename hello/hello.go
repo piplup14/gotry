@@ -28,6 +28,7 @@ const (
 var images = []img{}
 
 func getAlbums(c *gin.Context) {
+	images = []img{}
 	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 
 	// open database
@@ -75,8 +76,19 @@ func postAlbums(c *gin.Context) {
 	}
 
 	// Add the new album to the slice.
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	db, err := sql.Open("postgres", psqlconn)
+	CheckError(err)
+	defer db.Close()
+
 	images = append(images, newAlbum)
-	c.IndentedJSON(http.StatusCreated, newAlbum)
+
+	result, err := db.Exec("insert into images (path, date, name, id) values ($1, $2, $3, $4)", newAlbum.Path, newAlbum.Date, newAlbum.Name, newAlbum.ID)
+	CheckError(err)
+
+	fmt.Println(result.LastInsertId())
+	fmt.Println(result.RowsAffected())
+
 }
 
 func CheckError(err error) {
@@ -93,3 +105,12 @@ func main() {
 
 	router.Run("localhost:8980")
 }
+
+/*
+{
+"id":4,
+"name":"bame",
+"date":"01.01.1111",
+"path":"a:/b/c"
+}
+*/
