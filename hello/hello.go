@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,7 +14,6 @@ import (
 type img struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
-	Date string `json:"date"`
 	Path string `json:"path"`
 }
 
@@ -26,8 +24,6 @@ const (
 	password = "admin"
 	dbname   = "postgres"
 )
-
-var ids = []int{}
 
 var images = []img{}
 
@@ -49,7 +45,7 @@ func getAlbums(c *gin.Context) {
 
 	fmt.Println("Connected!")
 
-	rows, err := db.Query(`SELECT "name", "id" , "date", "path" FROM "images"`)
+	rows, err := db.Query(`SELECT "name", "id" , "path" FROM "images"`)
 	CheckError(err)
 	var newItem img
 	defer rows.Close()
@@ -57,16 +53,13 @@ func getAlbums(c *gin.Context) {
 	for rows.Next() {
 		var name string
 		var id int
-		var date string
 		var path string
 
-		err = rows.Scan(&name, &id, &date, &path)
+		err = rows.Scan(&name, &id, &path)
 		CheckError(err)
-		newItem = img{id, name, date, path}
+		newItem = img{id, name, path}
 		fmt.Println(newItem)
-		ids = append(ids, newItem.ID)
 		images = append(images, newItem)
-
 	}
 
 	CheckError(err)
@@ -89,21 +82,8 @@ func postAlbums(c *gin.Context) {
 	db, err := sql.Open("postgres", psqlconn)
 	CheckError(err)
 	defer db.Close()
-	var n = rand.Int()
-	for i := 0; i < len(ids); i++ {
-		if n == ids[i] {
-			n = rand.Int()
-		}
-	}
 
 	images = append(images, newAlbum)
-
-	var id = rand.Int()
-
-	result, err := db.Exec("insert into images (path, date, name, id) values ($1, $2, $3, $4)", newAlbum.Path, newAlbum.Date, newAlbum.Name, newAlbum.ID)
-	CheckError(err)
-
-	fmt.Println(result.RowsAffected())
 
 	//minio part --------------------------------------------------------------
 	endpoint := "play.minio.io:9000"
@@ -139,12 +119,16 @@ func postAlbums(c *gin.Context) {
 	contentType := "image/jpeg"
 
 	// Upload the file with FPutObject
-	s, err := minioClient.FPutObject(bucketName, newAlbum.Name, filePath, minio.PutObjectOptions{ContentType: contentType})
+	s, err := minioClient.FPutObject(bucketName, newAlbum.Name+".jpg", filePath, minio.PutObjectOptions{ContentType: contentType})
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	log.Printf("Successfully uploaded %s of size %d\n", newAlbum.Name, s)
+	result, err := db.Exec("insert into images (path, name) values ($1, $2)", newAlbum.Name+".jpg", newAlbum.Name)
+	CheckError(err)
+
+	fmt.Println(result.RowsAffected())
 }
 
 func CheckError(err error) {
@@ -165,9 +149,7 @@ func main() {
 
 /*
 {
-"id":4,
 "name":"bame",
-"date":"01.01.1111",
-"path":"a:/b/c"
+"path":"D:/prog/gotry/hello/public/some.png"
 }
 */
