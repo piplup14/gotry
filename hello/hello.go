@@ -182,12 +182,10 @@ func getOneItem(c *gin.Context) {
 	CheckError(err)
 	var newItem img
 	defer rows.Close()
-	//////////////
 	type newurl struct {
 		URL string `json:"URL"`
 	}
 	var saveurl newurl
-	///////////////////
 	for rows.Next() {
 		var name string
 		var id int
@@ -332,12 +330,12 @@ func main() {
 {"id":3}
 
 {
-"name":"bame",
-"path":"D:/prog/gotry/hello/public/some.png"
+"name":"wrongpath",
+"path":"D:/prog/gotry/hello/public/1.jpg"
 }
 
 {
-"name":"wrongpath",
-"path":"D:/prog/gotry/hello/1.jpg"
+"name":"name1",
+"path":"D:/prog/gotry/hello/public/some.jpeg"
 }
 */
